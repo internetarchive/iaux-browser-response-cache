@@ -1,1 +1,1 @@
-export { BrowserResponseCache } from './src/BrowserResponseCache.js';
+export { BrowserResponseCache } from './src/browser-response-cache';
