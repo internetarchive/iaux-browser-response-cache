@@ -3,11 +3,9 @@ import {
   html,
   internalProperty,
   LitElement,
-  notEqual,
-  property,
   TemplateResult,
 } from 'lit-element';
-import { nothing } from 'lit-html';
+
 import { BrowserResponseCache } from '../src/browser-response-cache';
 
 @customElement('app-root')
@@ -48,9 +46,10 @@ export class AppRoot extends LitElement {
     console.debug('json', json);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timerInterval?: any;
 
-  private startTimer() {
+  private startTimer(): void {
     this.timeRemaining = 5;
     this.cacheActive = true;
     this.timerInterval = setInterval(() => {
