@@ -75,8 +75,15 @@ export class BrowserResponseCache implements BrowserResponseCacheInterface {
     this.cacheExpirationStorage =
       options.cacheExpirationHandler ?? new IndexedDBCacheExpirationStorage();
 
-    // `caches` is the `window` or `WebWorker` cache, depending on the context
-    this.cacheStorage = options.cacheStorage ?? caches;
+    // cacheStorage can either be passed in or if using in a browser,
+    // use `window.caches`, or in a WebWorker, use `self.caches`
+    this.cacheStorage =
+      options.cacheStorage ??
+      ('caches' in window
+        ? window.caches
+        : 'caches' in self
+        ? self.caches
+        : undefined);
 
     const cacheMaintenanceInterval =
       options.cacheMaintenanceInterval ??
