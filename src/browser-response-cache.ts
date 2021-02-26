@@ -15,7 +15,7 @@ export type CacheMap = { [url: string]: Date };
  * stored in memory or persisted
  */
 export interface CacheExpirationStorageInterface {
-  set(url: string, expiresAt?: Date): Promise<void>;
+  set(url: string, expiresAt: Date): Promise<void>;
   get(url: string): Promise<Date | undefined>;
   getAll(): Promise<CacheMap>;
   remove(url: string): Promise<void>;
@@ -25,7 +25,7 @@ export interface BrowserResponseCacheInterface {
   getResponse(options: {
     url: string;
     useCache?: boolean;
-    cacheUntil?: Date;
+    cacheTTL?: number;
   }): Promise<Response | undefined>;
   shutdown(): Promise<void>;
 }
@@ -60,6 +60,7 @@ export class BrowserResponseCache implements BrowserResponseCacheInterface {
    * @type {*}
    * @memberof BrowserResponseCache
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private cacheCleaningIntervalStorage?: any;
 
   constructor(options: {
@@ -73,20 +74,25 @@ export class BrowserResponseCache implements BrowserResponseCacheInterface {
     this.cacheName = options.cacheName ?? this.DEFAULT_CACHE_NAME;
     this.cacheExpirationStorage =
       options.cacheExpirationHandler ?? new IndexedDBCacheExpirationStorage();
+
     // `caches` is the `window` or `WebWorker` cache, depending on the context
     this.cacheStorage = options.cacheStorage ?? caches;
+
+    const cacheMaintenanceInterval =
+      options.cacheMaintenanceInterval ??
+      this.DEFAULT_CACHE_MAINTENANCE_INTERVAL;
+
     this.doCacheMaintenance();
     this.cacheCleaningIntervalStorage = setInterval(
       this.doCacheMaintenance.bind(this),
-      options.cacheMaintenanceInterval ??
-        this.DEFAULT_CACHE_MAINTENANCE_INTERVAL
+      cacheMaintenanceInterval
     );
   }
 
   async getResponse(options: {
     url: string;
     useCache?: boolean;
-    cacheUntil?: Date;
+    cacheTTL?: number;
   }): Promise<Response | undefined> {
     if (options.useCache ?? true) {
       const needsRefresh = await this.needsRefresh(options.url);
@@ -101,10 +107,8 @@ export class BrowserResponseCache implements BrowserResponseCacheInterface {
     if (cache) {
       await cache?.add(options.url);
       response = await this.getCachedResponse(options.url);
-      const defaultCache = new Date(
-        new Date().getTime() + this.defaultCacheTTL
-      );
-      const cacheUntil = options.cacheUntil ?? defaultCache;
+      const cacheTTL = options.cacheTTL ?? this.defaultCacheTTL;
+      const cacheUntil = new Date(new Date().getTime() + cacheTTL);
       await this.cacheExpirationStorage.set(options.url, cacheUntil);
     } else {
       response = await fetch(options.url);
@@ -112,7 +116,7 @@ export class BrowserResponseCache implements BrowserResponseCacheInterface {
     return response;
   }
 
-  async shutdown() {
+  async shutdown(): Promise<void> {
     clearInterval(this.cacheCleaningIntervalStorage);
   }
 
@@ -126,7 +130,7 @@ export class BrowserResponseCache implements BrowserResponseCacheInterface {
     const cache = await this.openBrowserCache();
     for (const [url, expiresAt] of Object.entries(cacheExpirationEntries)) {
       if (this.hasExpired(expiresAt)) {
-        const result = await cache?.delete(url);
+        await cache?.delete(url);
         await this.cacheExpirationStorage.remove(url);
       }
     }

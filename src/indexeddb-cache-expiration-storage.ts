@@ -1,4 +1,4 @@
-import { get, set, update } from 'idb-keyval';
+import { get, update } from 'idb-keyval';
 import {
   CacheExpirationStorageInterface,
   CacheMap,
@@ -6,12 +6,14 @@ import {
 
 export class IndexedDBCacheExpirationStorage
   implements CacheExpirationStorageInterface {
-  private readonly IDB_STORAGE_KEY = 'idb-cache-expiration-storage';
+  private readonly DEFAULT_IDB_STORAGE_KEY = 'idb-cache-expiration-storage';
 
-  async set(url: string, cachedAt: Date): Promise<void> {
-    await update(this.IDB_STORAGE_KEY, val => {
+  private storageKey: string;
+
+  async set(url: string, expiresAt: Date): Promise<void> {
+    await update(this.storageKey, val => {
       const cacheMap = (val as CacheMap) || {};
-      cacheMap[url] = cachedAt;
+      cacheMap[url] = expiresAt;
       return cacheMap;
     });
   }
@@ -22,15 +24,19 @@ export class IndexedDBCacheExpirationStorage
   }
 
   async getAll(): Promise<CacheMap> {
-    const storage = await get(this.IDB_STORAGE_KEY);
+    const storage = await get(this.storageKey);
     return storage ?? {};
   }
 
   async remove(url: string): Promise<void> {
-    await update(this.IDB_STORAGE_KEY, val => {
+    await update(this.storageKey, val => {
       const storage = val || {};
       delete storage[url];
       return storage;
     });
+  }
+
+  constructor(options?: { storageKey?: string }) {
+    this.storageKey = options?.storageKey ?? this.DEFAULT_IDB_STORAGE_KEY;
   }
 }
