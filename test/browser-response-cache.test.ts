@@ -81,22 +81,22 @@ describe('BrowserResponseCache', () => {
     expect(expiration2).to.equal(undefined);
   });
 
-  // it('can shut down the cache cleaning', async () => {
-  //   const mockCacheStorage = new MockCacheStorage();
-  //   const mockCacheExpirationStorage = new MockCacheExpirationStorage();
-  //   const browserResponseCache = new BrowserResponseCache({
-  //     defaultCacheTTL: 20,
-  //     cacheExpirationHandler: mockCacheExpirationStorage,
-  //     cacheStorage: mockCacheStorage,
-  //     cacheMaintenanceInterval: 10,
-  //   });
-  //   await browserResponseCache.getResponse({ url: 'foo' });
-  //   // we're going to shut it down immediate so it doesn't clean the cache
-  //   browserResponseCache.shutdown();
-  //   const expiration = await mockCacheExpirationStorage.get('foo');
-  //   expect(expiration).to.exist;
-  //   await promisedSleep(40);
-  //   const expiration2 = await mockCacheExpirationStorage.get('foo');
-  //   expect(expiration2).to.exist;
-  // });
+  it('can shut down the cache cleaning', async () => {
+    const mockCacheStorage = new MockCacheStorage();
+    const mockCacheExpirationStorage = new MockCacheExpirationStorage();
+    const browserResponseCache = new BrowserResponseCache({
+      defaultCacheTTL: 20,
+      cacheExpirationHandler: mockCacheExpirationStorage,
+      cacheStorage: mockCacheStorage,
+      cacheMaintenanceInterval: 10,
+    });
+    await browserResponseCache.getResponse({ url: 'foo' });
+    // we're going to shut it down immediate so it doesn't clean the cache
+    browserResponseCache.shutdown();
+    const expiration = await mockCacheExpirationStorage.get('foo');
+    expect(expiration).to.exist;
+    await promisedSleep(40);
+    const expiration2 = await mockCacheExpirationStorage.get('foo');
+    expect(expiration2).to.exist;
+  });
 });
